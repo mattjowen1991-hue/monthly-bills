@@ -661,6 +661,21 @@
       const [isMobile, setIsMobile] = useState(false);
       const chartRef = useRef(null);
       const chartInstance = useRef(null);
+      
+      // Debt tracking state
+      const [debts, setDebts] = useState([]);
+      const [expandedDebtId, setExpandedDebtId] = useState(null);
+      const [showAddDebtModal, setShowAddDebtModal] = useState(false);
+      const [editingDebtId, setEditingDebtId] = useState(null);
+      const [debtPayoffAmount, setDebtPayoffAmount] = useState(0);
+      const [newDebt, setNewDebt] = useState({
+        name: '',
+        type: 'Credit Card',
+        totalAmount: 0,
+        startDate: '',
+        endDate: '',
+        recurringPayment: 0
+      });
 
       // Detect mobile screen size
       useEffect(() => {
@@ -691,25 +706,28 @@
             const data = JSON.parse(stored.value);
             setBills(data.bills || initialBills);
             setIncome(data.income || 1960);
+            setDebts(data.debts || []);
           } else {
             setBills(initialBills);
+            setDebts([]);
           }
         } catch (error) {
           console.log('No stored data, using initial bills');
           setBills(initialBills);
+          setDebts([]);
         }
       };
 
       // Save data to storage
       useEffect(() => {
-        if (bills.length > 0) {
+        if (bills.length > 0 || debts.length > 0) {
           saveData();
         }
-      }, [bills, income]);
+      }, [bills, income, debts]);
 
       const saveData = async () => {
         try {
-          await window.storage.set('bills-data', JSON.stringify({ bills, income }));
+          await window.storage.set('bills-data', JSON.stringify({ bills, income, debts }));
         } catch (error) {
           console.error('Error saving data:', error);
         }
@@ -845,6 +863,58 @@
       const filteredBills = selectedCategory === 'ALL' 
         ? bills 
         : bills.filter(b => b.category === selectedCategory);
+      
+      // Debt types
+      const debtTypes = [
+        'Credit Card',
+        'Personal Loan',
+        'Student Loan',
+        'Car Loan',
+        'Mortgage',
+        'Medical Debt',
+        'Payday Loan',
+        'Other'
+      ];
+      
+      // Debt handlers
+      const handleAddDebt = () => {
+        const id = Date.now().toString();
+        setDebts([...debts, { ...newDebt, id }]);
+        setShowAddDebtModal(false);
+        setNewDebt({
+          name: '',
+          type: 'Credit Card',
+          totalAmount: 0,
+          startDate: '',
+          endDate: '',
+          recurringPayment: 0
+        });
+      };
+      
+      const handleDeleteDebt = (id) => {
+        if (confirm('Are you sure you want to delete this debt?')) {
+          setDebts(debts.filter(d => d.id !== id));
+          if (expandedDebtId === id) setExpandedDebtId(null);
+        }
+      };
+      
+      const handleUpdateDebt = (id, updates) => {
+        setDebts(debts.map(d => d.id === id ? { ...d, ...updates } : d));
+      };
+      
+      // Calculate debt totals
+      const totalDebt = debts.reduce((sum, debt) => sum + (debt.totalAmount || 0), 0);
+      
+      // Calculate payoff timeline
+      const calculatePayoffTimeline = () => {
+        if (debtPayoffAmount <= 0 || totalDebt <= 0) return null;
+        const months = Math.ceil(totalDebt / debtPayoffAmount);
+        const years = Math.floor(months / 12);
+        const remainingMonths = months % 12;
+        return { months, years, remainingMonths };
+      };
+      
+      const payoffTimeline = calculatePayoffTimeline();
 
       return (
         <div style={{ padding: isMobile ? '12px' : '20px', maxWidth: '1400px', margin: '0 auto' }}>
@@ -1319,6 +1389,234 @@
             )}
           </div>
 
+          {/* Debt Tracking Section */}
+          <div className="glass-card animate-in" style={{ padding: isMobile ? '16px' : '24px', marginTop: isMobile ? '20px' : '40px', animationDelay: '0.9s' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <div>
+                <h2 className="font-display" style={{ fontSize: isMobile ? '24px' : '28px' }}>
+                  Debt Tracking
+                </h2>
+                <p style={{ color: 'var(--text-secondary)', fontSize: '14px', marginTop: '4px' }}>
+                  {debts.length} {debts.length === 1 ? 'debt' : 'debts'} · Total: £{totalDebt.toFixed(2)}
+                </p>
+              </div>
+              <button 
+                className="btn btn-primary" 
+                onClick={() => setShowAddDebtModal(true)}
+                style={{ whiteSpace: 'nowrap' }}
+              >
+                <Icons.Plus size={18} />
+                {!isMobile && 'Add Debt'}
+              </button>
+            </div>
+
+            {/* Debt Payoff Calculator */}
+            {debts.length > 0 && (
+              <div style={{ padding: isMobile ? '16px' : '20px', background: 'var(--glass)', borderRadius: '16px', border: '1px solid var(--border)', marginBottom: '24px' }}>
+                <h3 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Icons.TrendingDown size={20} style={{ color: 'var(--accent-primary)' }} />
+                  Payoff Calculator
+                </h3>
+                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '16px' }}>
+                  <div>
+                    <label style={{ display: 'block', color: 'var(--text-secondary)', fontSize: '13px', marginBottom: '8px', fontWeight: '500' }}>
+                      Monthly Payment Amount
+                    </label>
+                    <input
+                      type="number"
+                      className="input"
+                      value={debtPayoffAmount}
+                      onChange={(e) => setDebtPayoffAmount(parseFloat(e.target.value) || 0)}
+                      placeholder="Enter monthly payment"
+                    />
+                  </div>
+                  {payoffTimeline && (
+                    <div style={{ padding: '16px', background: 'linear-gradient(135deg, rgba(0, 212, 255, 0.1), rgba(124, 58, 237, 0.1))', borderRadius: '12px', border: '1px solid var(--accent-primary)' }}>
+                      <div style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '8px' }}>Time to Pay Off</div>
+                      <div className="font-mono" style={{ fontSize: '24px', fontWeight: '700', color: 'var(--accent-primary)' }}>
+                        {payoffTimeline.years > 0 && `${payoffTimeline.years}y `}
+                        {payoffTimeline.remainingMonths}m
+                      </div>
+                      <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>
+                        {payoffTimeline.months} months total
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Debt List */}
+            {debts.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '40px 20px', color: 'var(--text-muted)' }}>
+                <p>No debts tracked yet. Add one to get started!</p>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                {debts.map((debt) => (
+                  <div key={debt.id} className="glass-card" style={{ padding: '16px', transition: 'all 0.3s' }}>
+                    {/* Debt Header - Always Visible */}
+                    <div 
+                      style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }}
+                      onClick={() => setExpandedDebtId(expandedDebtId === debt.id ? null : debt.id)}
+                    >
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontWeight: '600', fontSize: '16px', marginBottom: '4px' }}>{debt.name}</div>
+                        <div style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>{debt.type}</div>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <div style={{ textAlign: 'right' }}>
+                          <div className="font-mono" style={{ fontSize: '18px', fontWeight: '700', color: 'var(--danger)' }}>
+                            £{debt.totalAmount.toFixed(2)}
+                          </div>
+                          {debt.recurringPayment > 0 && (
+                            <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                              £{debt.recurringPayment}/mo
+                            </div>
+                          )}
+                        </div>
+                        <div style={{ width: '24px', height: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'transform 0.3s', transform: expandedDebtId === debt.id ? 'rotate(180deg)' : 'rotate(0deg)' }}>
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <polyline points="6 9 12 15 18 9"></polyline>
+                          </svg>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Expanded Details */}
+                    {expandedDebtId === debt.id && (
+                      <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid var(--border)', animation: 'slideInUp 0.3s' }}>
+                        {editingDebtId === debt.id ? (
+                          // Edit Mode
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                            <div>
+                              <label style={{ display: 'block', color: 'var(--text-secondary)', fontSize: '13px', marginBottom: '8px' }}>
+                                Debt Name
+                              </label>
+                              <input
+                                className="input"
+                                value={debt.name}
+                                onChange={(e) => handleUpdateDebt(debt.id, { name: e.target.value })}
+                              />
+                            </div>
+                            <div>
+                              <label style={{ display: 'block', color: 'var(--text-secondary)', fontSize: '13px', marginBottom: '8px' }}>
+                                Debt Type
+                              </label>
+                              <select
+                                className="input"
+                                value={debt.type}
+                                onChange={(e) => handleUpdateDebt(debt.id, { type: e.target.value })}
+                              >
+                                {debtTypes.map(type => (
+                                  <option key={type} value={type}>{type}</option>
+                                ))}
+                              </select>
+                            </div>
+                            <div>
+                              <label style={{ display: 'block', color: 'var(--text-secondary)', fontSize: '13px', marginBottom: '8px' }}>
+                                Total Amount
+                              </label>
+                              <input
+                                type="number"
+                                className="input"
+                                value={debt.totalAmount}
+                                onChange={(e) => handleUpdateDebt(debt.id, { totalAmount: parseFloat(e.target.value) || 0 })}
+                              />
+                            </div>
+                            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '12px' }}>
+                              <div>
+                                <label style={{ display: 'block', color: 'var(--text-secondary)', fontSize: '13px', marginBottom: '8px' }}>
+                                  Start Date
+                                </label>
+                                <input
+                                  type="date"
+                                  className="input"
+                                  value={debt.startDate}
+                                  onChange={(e) => handleUpdateDebt(debt.id, { startDate: e.target.value })}
+                                />
+                              </div>
+                              <div>
+                                <label style={{ display: 'block', color: 'var(--text-secondary)', fontSize: '13px', marginBottom: '8px' }}>
+                                  End Date
+                                </label>
+                                <input
+                                  type="date"
+                                  className="input"
+                                  value={debt.endDate}
+                                  onChange={(e) => handleUpdateDebt(debt.id, { endDate: e.target.value })}
+                                />
+                              </div>
+                            </div>
+                            <div>
+                              <label style={{ display: 'block', color: 'var(--text-secondary)', fontSize: '13px', marginBottom: '8px' }}>
+                                Recurring Payment
+                              </label>
+                              <input
+                                type="number"
+                                className="input"
+                                value={debt.recurringPayment}
+                                onChange={(e) => handleUpdateDebt(debt.id, { recurringPayment: parseFloat(e.target.value) || 0 })}
+                                placeholder="Monthly payment amount"
+                              />
+                            </div>
+                            <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
+                              <button 
+                                className="btn btn-primary" 
+                                onClick={() => setEditingDebtId(null)}
+                                style={{ flex: 1 }}
+                              >
+                                <Icons.Check size={18} /> Done
+                              </button>
+                              <button 
+                                className="btn btn-secondary" 
+                                onClick={() => handleDeleteDebt(debt.id)}
+                                style={{ color: '#ef4444' }}
+                              >
+                                <Icons.Trash size={18} /> Delete
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          // View Mode
+                          <div>
+                            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)', gap: '12px', marginBottom: '16px' }}>
+                              {debt.startDate && (
+                                <div style={{ padding: '12px', background: 'var(--glass)', borderRadius: '8px' }}>
+                                  <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '4px' }}>Start Date</div>
+                                  <div style={{ fontSize: '14px', fontWeight: '500' }}>{new Date(debt.startDate).toLocaleDateString()}</div>
+                                </div>
+                              )}
+                              {debt.endDate && (
+                                <div style={{ padding: '12px', background: 'var(--glass)', borderRadius: '8px' }}>
+                                  <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '4px' }}>End Date</div>
+                                  <div style={{ fontSize: '14px', fontWeight: '500' }}>{new Date(debt.endDate).toLocaleDateString()}</div>
+                                </div>
+                              )}
+                              {debt.recurringPayment > 0 && (
+                                <div style={{ padding: '12px', background: 'var(--glass)', borderRadius: '8px' }}>
+                                  <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '4px' }}>Recurring Payment</div>
+                                  <div className="font-mono" style={{ fontSize: '14px', fontWeight: '600' }}>£{debt.recurringPayment.toFixed(2)}/mo</div>
+                                </div>
+                              )}
+                            </div>
+                            <button 
+                              className="btn btn-secondary" 
+                              onClick={() => setEditingDebtId(debt.id)}
+                              style={{ width: '100%' }}
+                            >
+                              <Icons.Edit size={18} /> Edit Details
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
           {/* Add Bill Modal */}
           {showAddModal && (
             <div className="modal-overlay" onClick={() => setShowAddModal(false)}>
@@ -1412,6 +1710,128 @@
                       <button 
                         className="btn btn-secondary" 
                         onClick={() => setShowAddModal(false)}
+                        style={{ flex: 1, justifyContent: 'center' }}
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Add Debt Modal */}
+          {showAddDebtModal && (
+            <div className="modal-overlay" onClick={() => setShowAddDebtModal(false)}>
+              <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+                <div style={{ padding: isMobile ? '24px' : '32px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: isMobile ? '24px' : '32px' }}>
+                    <h2 className="font-display" style={{ fontSize: isMobile ? '24px' : '28px' }}>Add New Debt</h2>
+                    <button className="btn btn-icon btn-secondary" onClick={() => setShowAddDebtModal(false)}>
+                      <Icons.X size={20} />
+                    </button>
+                  </div>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                    <div>
+                      <label style={{ display: 'block', color: 'var(--text-secondary)', fontSize: '13px', marginBottom: '8px', fontWeight: '500' }}>
+                        Debt Name *
+                      </label>
+                      <input
+                        className="input"
+                        placeholder="e.g., Credit Card, Student Loan"
+                        value={newDebt.name}
+                        onChange={(e) => setNewDebt({ ...newDebt, name: e.target.value })}
+                      />
+                    </div>
+
+                    <div>
+                      <label style={{ display: 'block', color: 'var(--text-secondary)', fontSize: '13px', marginBottom: '8px', fontWeight: '500' }}>
+                        Debt Type *
+                      </label>
+                      <select
+                        className="input"
+                        value={newDebt.type}
+                        onChange={(e) => setNewDebt({ ...newDebt, type: e.target.value })}
+                      >
+                        {debtTypes.map(type => (
+                          <option key={type} value={type}>{type}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label style={{ display: 'block', color: 'var(--text-secondary)', fontSize: '13px', marginBottom: '8px', fontWeight: '500' }}>
+                        Total Amount *
+                      </label>
+                      <input
+                        type="number"
+                        className="input"
+                        placeholder="0.00"
+                        value={newDebt.totalAmount}
+                        onChange={(e) => setNewDebt({ ...newDebt, totalAmount: parseFloat(e.target.value) || 0 })}
+                      />
+                    </div>
+
+                    <div style={{ padding: '16px', background: 'var(--glass)', borderRadius: '12px', border: '1px solid var(--border)' }}>
+                      <div style={{ fontSize: '13px', fontWeight: '600', marginBottom: '12px', color: 'var(--text-secondary)' }}>
+                        Optional Details
+                      </div>
+                      
+                      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
+                        <div>
+                          <label style={{ display: 'block', color: 'var(--text-secondary)', fontSize: '13px', marginBottom: '8px', fontWeight: '500' }}>
+                            Start Date
+                          </label>
+                          <input
+                            type="date"
+                            className="input"
+                            value={newDebt.startDate}
+                            onChange={(e) => setNewDebt({ ...newDebt, startDate: e.target.value })}
+                          />
+                        </div>
+
+                        <div>
+                          <label style={{ display: 'block', color: 'var(--text-secondary)', fontSize: '13px', marginBottom: '8px', fontWeight: '500' }}>
+                            End Date
+                          </label>
+                          <input
+                            type="date"
+                            className="input"
+                            value={newDebt.endDate}
+                            onChange={(e) => setNewDebt({ ...newDebt, endDate: e.target.value })}
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label style={{ display: 'block', color: 'var(--text-secondary)', fontSize: '13px', marginBottom: '8px', fontWeight: '500' }}>
+                          Recurring Payment
+                        </label>
+                        <input
+                          type="number"
+                          className="input"
+                          placeholder="Monthly payment amount"
+                          value={newDebt.recurringPayment}
+                          onChange={(e) => setNewDebt({ ...newDebt, recurringPayment: parseFloat(e.target.value) || 0 })}
+                        />
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '12px', marginTop: '8px' }}>
+                      <button 
+                        className="btn btn-primary" 
+                        onClick={handleAddDebt}
+                        style={{ flex: 1, justifyContent: 'center' }}
+                        disabled={!newDebt.name || !newDebt.totalAmount}
+                      >
+                        <Icons.Plus size={20} />
+                        Add Debt
+                      </button>
+                      <button 
+                        className="btn btn-secondary" 
+                        onClick={() => setShowAddDebtModal(false)}
                         style={{ flex: 1, justifyContent: 'center' }}
                       >
                         Cancel
