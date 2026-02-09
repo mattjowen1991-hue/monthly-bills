@@ -3,28 +3,37 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#1e1b4b">
-  <title>Monthly Bills Tracker</title>
+  <meta name="theme-color" content="#0a0e27">
+  <title>Bills — Financial Dashboard</title>
+  
+  <!-- Premium Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Work+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          fontFamily: {
-            'playfair': ['Playfair Display', 'serif'],
-            'work': ['Work Sans', 'sans-serif'],
-          }
-        }
-      }
-    }
-  </script>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;600;700&family=DM+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  
   <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  
   <style>
+    :root {
+      --bg-primary: #0a0e27;
+      --bg-secondary: #121630;
+      --bg-card: rgba(25, 31, 61, 0.6);
+      --accent-primary: #00d4ff;
+      --accent-secondary: #7c3aed;
+      --accent-tertiary: #f59e0b;
+      --text-primary: #e2e8f0;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+      --border: rgba(255, 255, 255, 0.08);
+      --glass: rgba(255, 255, 255, 0.03);
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+    }
+    
     * {
       margin: 0;
       padding: 0;
@@ -32,14 +41,293 @@
     }
     
     body {
-      font-family: 'Work Sans', sans-serif;
-      background: linear-gradient(to bottom right, #0f172a, #581c87, #0f172a);
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
       min-height: 100vh;
+      overflow-x: hidden;
+      position: relative;
+    }
+    
+    /* Animated background */
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: 
+        radial-gradient(circle at 20% 50%, rgba(124, 58, 237, 0.15) 0%, transparent 50%),
+        radial-gradient(circle at 80% 80%, rgba(0, 212, 255, 0.15) 0%, transparent 50%),
+        radial-gradient(circle at 40% 90%, rgba(245, 158, 11, 0.1) 0%, transparent 50%);
+      animation: backgroundPulse 20s ease-in-out infinite;
+      pointer-events: none;
+      z-index: 0;
+    }
+    
+    @keyframes backgroundPulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.7; }
+    }
+    
+    /* Grain texture overlay */
+    body::after {
+      content: '';
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.03'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 1;
+      opacity: 0.5;
     }
     
     #root {
+      position: relative;
+      z-index: 2;
       width: 100%;
       min-height: 100vh;
+    }
+    
+    /* Glass morphism utilities */
+    .glass-card {
+      background: var(--bg-card);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      box-shadow: 
+        0 8px 32px rgba(0, 0, 0, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.05);
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    .glass-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 
+        0 12px 48px rgba(0, 0, 0, 0.4),
+        inset 0 1px 0 rgba(255, 255, 255, 0.08);
+      border-color: rgba(255, 255, 255, 0.12);
+    }
+    
+    /* Typography */
+    .font-display {
+      font-family: 'Cormorant Garamond', serif;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+    }
+    
+    .font-mono {
+      font-family: 'JetBrains Mono', monospace;
+    }
+    
+    /* Animations */
+    @keyframes slideInUp {
+      from {
+        opacity: 0;
+        transform: translateY(30px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    
+    @keyframes shimmer {
+      0% {
+        background-position: -1000px 0;
+      }
+      100% {
+        background-position: 1000px 0;
+      }
+    }
+    
+    .animate-in {
+      animation: slideInUp 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+    }
+    
+    /* Button styles */
+    .btn {
+      padding: 12px 24px;
+      border-radius: 12px;
+      font-weight: 500;
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      border: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .btn::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+      transition: left 0.5s;
+    }
+    
+    .btn:hover::before {
+      left: 100%;
+    }
+    
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+      color: white;
+    }
+    
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(0, 212, 255, 0.3);
+    }
+    
+    .btn-secondary {
+      background: var(--glass);
+      border: 1px solid var(--border);
+      color: var(--text-primary);
+    }
+    
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.05);
+      border-color: rgba(255, 255, 255, 0.15);
+    }
+    
+    .btn-icon {
+      width: 40px;
+      height: 40px;
+      padding: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 10px;
+    }
+    
+    /* Input styles */
+    .input {
+      background: var(--glass);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px 16px;
+      color: var(--text-primary);
+      font-size: 14px;
+      font-family: 'DM Sans', sans-serif;
+      transition: all 0.2s;
+      width: 100%;
+    }
+    
+    .input:focus {
+      outline: none;
+      border-color: var(--accent-primary);
+      background: rgba(255, 255, 255, 0.05);
+      box-shadow: 0 0 0 3px rgba(0, 212, 255, 0.1);
+    }
+    
+    .input::placeholder {
+      color: var(--text-muted);
+    }
+    
+    /* Stat card */
+    .stat-card {
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .stat-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, var(--accent-primary), var(--accent-secondary));
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+    
+    .stat-card:hover::before {
+      opacity: 1;
+    }
+    
+    /* Chart container */
+    .chart-container {
+      position: relative;
+      height: 250px;
+      margin: 20px 0;
+    }
+    
+    /* Scrollbar */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    
+    ::-webkit-scrollbar-track {
+      background: var(--bg-secondary);
+    }
+    
+    ::-webkit-scrollbar-thumb {
+      background: var(--border);
+      border-radius: 4px;
+    }
+    
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(255, 255, 255, 0.15);
+    }
+    
+    /* Modal overlay */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      padding: 20px;
+      animation: fadeIn 0.2s;
+    }
+    
+    .modal-content {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      max-width: 500px;
+      width: 100%;
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5);
+      animation: slideInUp 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    /* Responsive */
+    @media (max-width: 768px) {
+      .glass-card {
+        border-radius: 16px;
+      }
+      
+      .btn {
+        padding: 10px 20px;
+        font-size: 13px;
+      }
     }
   </style>
 </head>
@@ -47,598 +335,741 @@
   <div id="root"></div>
 
   <script type="text/babel">
-    const { useState, useEffect } = React;
+    const { useState, useEffect, useRef } = React;
     
-    // Simple SVG icon components
-    const DollarSign = () => (
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <line x1="12" y1="1" x2="12" y2="23"></line>
-        <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
-      </svg>
-    );
-    
-    const TrendingUp = ({ size = 24 }) => (
-      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline>
-        <polyline points="17 6 23 6 23 12"></polyline>
-      </svg>
-    );
-    
-    const TrendingDown = ({ size = 24 }) => (
-      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <polyline points="23 18 13.5 8.5 8.5 13.5 1 6"></polyline>
-        <polyline points="17 18 23 18 23 12"></polyline>
-      </svg>
-    );
-    
-    const Calendar = ({ size = 24 }) => (
-      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-        <line x1="16" y1="2" x2="16" y2="6"></line>
-        <line x1="8" y1="2" x2="8" y2="6"></line>
-        <line x1="3" y1="10" x2="21" y2="10"></line>
-      </svg>
-    );
-    
-    const Edit2 = ({ size = 24 }) => (
-      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
-      </svg>
-    );
-    
-    const Check = ({ size = 24 }) => (
-      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <polyline points="20 6 9 17 4 12"></polyline>
-      </svg>
-    );
-    
-    const X = ({ size = 24 }) => (
-      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <line x1="18" y1="6" x2="6" y2="18"></line>
-        <line x1="6" y1="6" x2="18" y2="18"></line>
-      </svg>
-    );
-    
-    const Plus = ({ size = 24 }) => (
-      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <line x1="12" y1="5" x2="12" y2="19"></line>
-        <line x1="5" y1="12" x2="19" y2="12"></line>
-      </svg>
-    );
-    
-    const Trash2 = ({ size = 24 }) => (
-      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <polyline points="3 6 5 6 21 6"></polyline>
-        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-        <line x1="10" y1="11" x2="10" y2="17"></line>
-        <line x1="14" y1="11" x2="14" y2="17"></line>
-      </svg>
-    );
-
-    // Simple localStorage wrapper to match the storage API
-    const storage = {
-      get: async (key) => {
-        try {
-          const value = localStorage.getItem(key);
-          return value ? { key, value, shared: false } : null;
-        } catch (error) {
-          console.error('Storage get error:', error);
-          return null;
-        }
-      },
-      set: async (key, value) => {
-        try {
-          localStorage.setItem(key, value);
-          return { key, value, shared: false };
-        } catch (error) {
-          console.error('Storage set error:', error);
-          return null;
-        }
-      }
+    // Icon Components
+    const Icons = {
+      DollarSign: ({ size = 24, className = "" }) => (
+        <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+          <line x1="12" y1="1" x2="12" y2="23"></line>
+          <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+        </svg>
+      ),
+      TrendingUp: ({ size = 24, className = "" }) => (
+        <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+          <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline>
+          <polyline points="17 6 23 6 23 12"></polyline>
+        </svg>
+      ),
+      TrendingDown: ({ size = 24, className = "" }) => (
+        <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+          <polyline points="23 18 13.5 8.5 8.5 13.5 1 6"></polyline>
+          <polyline points="17 18 23 18 23 12"></polyline>
+        </svg>
+      ),
+      Calendar: ({ size = 24, className = "" }) => (
+        <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+          <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+          <line x1="16" y1="2" x2="16" y2="6"></line>
+          <line x1="8" y1="2" x2="8" y2="6"></line>
+          <line x1="3" y1="10" x2="21" y2="10"></line>
+        </svg>
+      ),
+      Edit: ({ size = 24, className = "" }) => (
+        <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+          <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
+        </svg>
+      ),
+      Trash: ({ size = 24, className = "" }) => (
+        <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+          <polyline points="3 6 5 6 21 6"></polyline>
+          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+        </svg>
+      ),
+      Plus: ({ size = 24, className = "" }) => (
+        <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+          <line x1="12" y1="5" x2="12" y2="19"></line>
+          <line x1="5" y1="12" x2="19" y2="12"></line>
+        </svg>
+      ),
+      Check: ({ size = 24, className = "" }) => (
+        <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+          <polyline points="20 6 9 17 4 12"></polyline>
+        </svg>
+      ),
+      X: ({ size = 24, className = "" }) => (
+        <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      ),
+      PieChart: ({ size = 24, className = "" }) => (
+        <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+          <path d="M21.21 15.89A10 10 0 1 1 8 2.83"></path>
+          <path d="M22 12A10 10 0 0 0 12 2v10z"></path>
+        </svg>
+      ),
+      Home: ({ size = 24, className = "" }) => (
+        <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+          <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+          <polyline points="9 22 9 12 15 12 15 22"></polyline>
+        </svg>
+      ),
     };
 
-    function MonthlyBillsTracker() {
-      const [bills, setBills] = useState([]);
-      const [income, setIncome] = useState({ projected: 1960, actual: 1960 });
-      const [editingId, setEditingId] = useState(null);
-      const [editValues, setEditValues] = useState({});
-      const [isAddingBill, setIsAddingBill] = useState(false);
-      const [newBill, setNewBill] = useState({ category: '', name: '', projected: 0, actual: 0, date: '' });
-      const [loading, setLoading] = useState(true);
+    // Initial bills data from your spreadsheet
+    const initialBills = [
+      // HOME
+      { id: '1', name: 'Eon', category: 'HOME', projected: 165, actual: 165, paymentDate: '15th', paid: true },
+      { id: '2', name: 'Domestic & General', category: 'HOME', projected: 18.99, actual: 18.99, paymentDate: '12th', paid: true },
+      { id: '3', name: 'Vodafone Airtime', category: 'HOME', projected: 24, actual: 24, paymentDate: '5th', paid: true },
+      { id: '4', name: 'Vodafone Broadband', category: 'HOME', projected: 35, actual: 35, paymentDate: '25th', paid: false },
+      { id: '5', name: 'TV License', category: 'HOME', projected: 13.56, actual: 13.56, paymentDate: '1st', paid: true },
+      { id: '6', name: 'Rent', category: 'HOME', projected: 250, actual: 250, paymentDate: '1st', paid: true },
+      { id: '7', name: 'OneCall', category: 'HOME', projected: 63.84, actual: 63.84, paymentDate: '9th', paid: true },
+      { id: '8', name: 'Shopping', category: 'HOME', projected: 90, actual: 90, paymentDate: '1st', paid: true },
+      { id: '9', name: 'Council Tax', category: 'HOME', projected: 56.25, actual: 56.25, paymentDate: '1st', paid: true },
+      { id: '10', name: 'SevernTrent', category: 'HOME', projected: 39, actual: 39, paymentDate: '15th', paid: true },
+      { id: '11', name: 'Ring', category: 'HOME', projected: 4.99, actual: 4.99, paymentDate: '9th', paid: true },
+      { id: '12', name: 'Virgin Pure', category: 'HOME', projected: 29, actual: 29, paymentDate: '9th', paid: true },
+      { id: '13', name: 'Tesco Mobile', category: 'HOME', projected: 7.5, actual: 7.5, paymentDate: '5th', paid: true },
+      { id: '14', name: 'Vodafone Device', category: 'HOME', projected: 25, actual: 25, paymentDate: '5th', paid: true },
+      { id: '15', name: 'Lisa', category: 'HOME', projected: 28.61, actual: 28.61, paymentDate: '9th', paid: true },
+      
+      // TRANSPORTATION
+      { id: '16', name: 'Fuel', category: 'TRANSPORTATION', projected: 60, actual: 60, paymentDate: '1st', paid: true },
+      
+      // CREDIT CARDS
+      { id: '17', name: 'Loan', category: 'CREDIT CARDS', projected: 200, actual: 200, paymentDate: '9th', paid: true },
+      { id: '18', name: 'PayPal', category: 'CREDIT CARDS', projected: 0, actual: 0, paymentDate: 'N/A', paid: false },
+      { id: '19', name: 'Barclays', category: 'CREDIT CARDS', projected: 50, actual: 50, paymentDate: '9th', paid: true },
+      
+      // ENTERTAINMENT
+      { id: '20', name: 'Netflix', category: 'ENTERTAINMENT', projected: 17.99, actual: 17.99, paymentDate: '9th', paid: true },
+      { id: '21', name: 'Lottery', category: 'ENTERTAINMENT', projected: 8, actual: 8, paymentDate: '1st', paid: true },
+      { id: '22', name: 'Disney Plus', category: 'ENTERTAINMENT', projected: 0, actual: 0, paymentDate: 'N/A', paid: false },
+      { id: '23', name: 'Roblox Premium', category: 'ENTERTAINMENT', projected: 4.59, actual: 4.59, paymentDate: '9th', paid: true },
+      { id: '24', name: 'Google Play Stuff', category: 'ENTERTAINMENT', projected: 10, actual: 10, paymentDate: 'Various', paid: false },
+      { id: '25', name: 'TunnelBear', category: 'ENTERTAINMENT', projected: 4.16, actual: 4.16, paymentDate: '9th', paid: true },
+      { id: '26', name: 'PlayStation Plus', category: 'ENTERTAINMENT', projected: 6.99, actual: 6.99, paymentDate: '9th', paid: true },
+      { id: '27', name: 'Amazon Prime', category: 'ENTERTAINMENT', projected: 8.99, actual: 8.99, paymentDate: '9th', paid: true },
+      { id: '28', name: 'National Trust', category: 'ENTERTAINMENT', projected: 0, actual: 0, paymentDate: 'N/A', paid: false },
+      { id: '29', name: 'Takeaway', category: 'ENTERTAINMENT', projected: 10.27, actual: 10.27, paymentDate: 'Various', paid: false },
+      
+      // HEALTH
+      { id: '30', name: 'L&G Life Insurance', category: 'HEALTH', projected: 24.4, actual: 24.4, paymentDate: '9th', paid: true },
+      { id: '31', name: 'Pet Insurance', category: 'HEALTH', projected: 42, actual: 42, paymentDate: '18th', paid: false },
+      { id: '32', name: 'Pet Healthcare', category: 'HEALTH', projected: 20, actual: 20, paymentDate: '9th', paid: true },
+      { id: '33', name: 'Medicine/Prescriptions', category: 'HEALTH', projected: 0, actual: 0, paymentDate: 'Various', paid: false },
+      { id: '34', name: 'Therapy', category: 'HEALTH', projected: 10, actual: 10, paymentDate: '9th', paid: true },
+      
+      // PAYMENTS
+      { id: '35', name: 'FraserPlus', category: 'PAYMENTS', projected: 40, actual: 40, paymentDate: '9th', paid: true },
+      { id: '36', name: 'SLC', category: 'PAYMENTS', projected: 52.5, actual: 52.5, paymentDate: '9th', paid: true },
+      { id: '37', name: 'Sofa', category: 'PAYMENTS', projected: 0, actual: 0, paymentDate: 'N/A', paid: false },
+      { id: '38', name: 'Klarna Monthly Payments', category: 'PAYMENTS', projected: 45, actual: 45, paymentDate: '9th', paid: true },
+      { id: '39', name: 'Vodafone Extra Costs', category: 'PAYMENTS', projected: 0, actual: 0, paymentDate: 'Various', paid: false },
+    ];
 
+    function BillsTracker() {
+      const [bills, setBills] = useState([]);
+      const [income, setIncome] = useState(1700);
+      const [editingId, setEditingId] = useState(null);
+      const [editForm, setEditForm] = useState({});
+      const [showAddModal, setShowAddModal] = useState(false);
+      const [newBill, setNewBill] = useState({
+        name: '',
+        category: 'HOME',
+        projected: 0,
+        actual: 0,
+        paymentDate: '',
+        paid: false
+      });
+      const [selectedCategory, setSelectedCategory] = useState('ALL');
+      const chartRef = useRef(null);
+      const chartInstance = useRef(null);
+
+      // Load data from storage
       useEffect(() => {
-        const loadData = async () => {
-          try {
-            const billsResult = await storage.get('bills-data');
-            const incomeResult = await storage.get('income-data');
-            
-            if (billsResult?.value) {
-              setBills(JSON.parse(billsResult.value));
-            } else {
-              const initialBills = [
-                { id: 1, category: 'HOME', name: 'Eon', projected: 124, actual: 124, date: '1st of each month (Joint Account)' },
-                { id: 2, category: 'HOME', name: 'Domestic & General', projected: 10.5, actual: 10.5, date: '1st of each month (Joint Account)' },
-                { id: 3, category: 'HOME', name: 'Vodafone Airtime', projected: 23.4, actual: 23.4, date: '1st of each month (Joint Account)' },
-                { id: 4, category: 'HOME', name: 'Vodafone Broadband', projected: 22.5, actual: 22.5, date: '1st of each month (Joint Account)' },
-                { id: 5, category: 'HOME', name: 'TV License', projected: 7.5, actual: 7.5, date: '1st of each month (Joint Account)' },
-                { id: 6, category: 'HOME', name: 'Rent', projected: 244.84, actual: 244.84, date: '1st of each month (Joint Account)' },
-                { id: 7, category: 'HOME', name: 'OneCall', projected: 8.5, actual: 8.5, date: '1st of each month (Joint Account)' },
-                { id: 8, category: 'HOME', name: 'Shopping', projected: 200, actual: 200, date: '1st of each month (Joint Account)' },
-                { id: 9, category: 'HOME', name: 'Council Tax', projected: 0, actual: 0, date: 'TBC (Joint Account)' },
-                { id: 10, category: 'HOME', name: 'SevernTrent', projected: 57, actual: 57, date: '12th of each month (Joint Account)' },
-                { id: 11, category: 'HOME', name: 'Ring', projected: 4, actual: 4, date: '1st of each month (Joint Account)' },
-                { id: 12, category: 'HOME', name: 'Virgin Pure', projected: 7.5, actual: 7.5, date: '4th of each month (Joint Account)' },
-                { id: 13, category: 'HOME', name: 'Tesco Mobile', projected: 8, actual: 8, date: '1st of each month' },
-                { id: 14, category: 'HOME', name: 'Vodafone Device', projected: 23, actual: 23, date: '1st of each month' },
-                { id: 15, category: 'HOME', name: 'Lisa', projected: 10, actual: 10, date: '1st of each month' },
-                { id: 16, category: 'TRANSPORTATION', name: 'Fuel', projected: 60, actual: 60, date: '1st of each month' },
-                { id: 17, category: 'CREDIT CARDS', name: 'Loan', projected: 250, actual: 250, date: '1st of each month' },
-                { id: 18, category: 'CREDIT CARDS', name: 'PayPal', projected: 0, actual: 0, date: '1st of each month' },
-                { id: 19, category: 'CREDIT CARDS', name: 'Barclays', projected: 0, actual: 0, date: '' },
-                { id: 20, category: 'ENTERTAINMENT', name: 'Netflix', projected: 6.5, actual: 6.5, date: '1st of each month (Joint Account)' },
-                { id: 21, category: 'ENTERTAINMENT', name: 'Lottery', projected: 12, actual: 12, date: '1st of each month' },
-                { id: 22, category: 'ENTERTAINMENT', name: 'Disney Plus', projected: 0, actual: 0, date: '3rd of each month (Joint Account)' },
-                { id: 23, category: 'ENTERTAINMENT', name: 'Roblox Premium', projected: 2.5, actual: 2.5, date: '5th of each month (Joint Account)' },
-                { id: 24, category: 'ENTERTAINMENT', name: 'Google Play Stuff', projected: 29, actual: 29, date: 'Paid via phone bill' },
-                { id: 25, category: 'ENTERTAINMENT', name: 'TunnelBear', projected: 0, actual: 0, date: '' },
-                { id: 26, category: 'ENTERTAINMENT', name: 'PlayStation Plus', projected: 6.99, actual: 6.99, date: '' },
-                { id: 27, category: 'ENTERTAINMENT', name: 'Amazon Prime', projected: 0, actual: 0, date: '1st of each month (Joint Account)' },
-                { id: 28, category: 'ENTERTAINMENT', name: 'National Trust', projected: 14, actual: 14, date: '1st of each month (Joint Account)' },
-                { id: 29, category: 'ENTERTAINMENT', name: 'Takeaway', projected: 0, actual: 0, date: '1st of each month (Joint Account)' },
-                { id: 30, category: 'HEALTH', name: 'L&G Life Insurance', projected: 9.9, actual: 9.9, date: '1st of each month' },
-                { id: 31, category: 'HEALTH', name: 'Pet Insurance', projected: 15, actual: 15, date: '1st of each month (Joint Account)' },
-                { id: 32, category: 'HEALTH', name: 'Pet Healthcare', projected: 9.5, actual: 9.5, date: '1st of each month (Joint Account)' },
-                { id: 33, category: 'HEALTH', name: 'Medicine / Prescriptions', projected: 12, actual: 12, date: '1st of each month' },
-                { id: 34, category: 'HEALTH', name: 'Therapy', projected: 50, actual: 50, date: '1st of each month' },
-                { id: 35, category: 'PAYMENTS', name: 'FraserPlus', projected: 50, actual: 50, date: '1st of each month' },
-                { id: 36, category: 'PAYMENTS', name: 'SLC', projected: 5, actual: 5, date: '' },
-                { id: 37, category: 'PAYMENTS', name: 'Sofa', projected: 12.5, actual: 12.5, date: '1st of each month (Joint Account)' },
-                { id: 38, category: 'PAYMENTS', name: 'Klarna Monthly Payments', projected: 70, actual: 70, date: '' },
-                { id: 39, category: 'PAYMENTS', name: 'Vodafone Extra Costs', projected: 0, actual: 0, date: '' },
-              ];
-              setBills(initialBills);
-              await storage.set('bills-data', JSON.stringify(initialBills));
-            }
-            
-            if (incomeResult?.value) {
-              setIncome(JSON.parse(incomeResult.value));
-            } else {
-              await storage.set('income-data', JSON.stringify(income));
-            }
-          } catch (error) {
-            console.error('Error loading data:', error);
-          } finally {
-            setLoading(false);
-          }
-        };
-        
         loadData();
       }, []);
 
-      const saveToStorage = async (updatedBills, updatedIncome) => {
+      const loadData = async () => {
         try {
-          await storage.set('bills-data', JSON.stringify(updatedBills));
-          if (updatedIncome) {
-            await storage.set('income-data', JSON.stringify(updatedIncome));
+          const stored = await window.storage.get('bills-data');
+          if (stored && stored.value) {
+            const data = JSON.parse(stored.value);
+            setBills(data.bills || initialBills);
+            setIncome(data.income || 1700);
+          } else {
+            setBills(initialBills);
           }
+        } catch (error) {
+          console.log('No stored data, using initial bills');
+          setBills(initialBills);
+        }
+      };
+
+      // Save data to storage
+      useEffect(() => {
+        if (bills.length > 0) {
+          saveData();
+        }
+      }, [bills, income]);
+
+      const saveData = async () => {
+        try {
+          await window.storage.set('bills-data', JSON.stringify({ bills, income }));
         } catch (error) {
           console.error('Error saving data:', error);
         }
       };
 
-      const totalProjected = bills.reduce((sum, bill) => sum + (bill.projected || 0), 0);
-      const totalActual = bills.reduce((sum, bill) => sum + (bill.actual || 0), 0);
-      const netProjected = income.projected - totalProjected;
-      const netActual = income.actual - totalActual;
+      // Calculate totals
+      const totals = {
+        projectedExpenses: bills.reduce((sum, bill) => sum + (bill.projected || 0), 0),
+        actualExpenses: bills.reduce((sum, bill) => sum + (bill.actual || 0), 0),
+        paidBills: bills.filter(b => b.paid).length,
+        totalBills: bills.length,
+      };
 
-      const categories = [...new Set(bills.map(bill => bill.category))];
+      totals.projectedBalance = income - totals.projectedExpenses;
+      totals.actualBalance = income - totals.actualExpenses;
+      totals.difference = totals.actualExpenses - totals.projectedExpenses;
 
-      const startEdit = (bill) => {
-        console.log('Edit clicked for bill:', bill);
+      // Category breakdown
+      const categories = ['HOME', 'TRANSPORTATION', 'CREDIT CARDS', 'ENTERTAINMENT', 'HEALTH', 'PAYMENTS'];
+      const categoryTotals = categories.map(cat => ({
+        name: cat,
+        total: bills.filter(b => b.category === cat).reduce((sum, b) => sum + (b.actual || 0), 0)
+      })).filter(c => c.total > 0);
+
+      // Update chart
+      useEffect(() => {
+        if (chartRef.current && categoryTotals.length > 0) {
+          const ctx = chartRef.current.getContext('2d');
+          
+          if (chartInstance.current) {
+            chartInstance.current.destroy();
+          }
+
+          const colors = [
+            'rgba(0, 212, 255, 0.8)',
+            'rgba(124, 58, 237, 0.8)',
+            'rgba(245, 158, 11, 0.8)',
+            'rgba(16, 185, 129, 0.8)',
+            'rgba(239, 68, 68, 0.8)',
+            'rgba(168, 85, 247, 0.8)',
+          ];
+
+          chartInstance.current = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+              labels: categoryTotals.map(c => c.name),
+              datasets: [{
+                data: categoryTotals.map(c => c.total),
+                backgroundColor: colors.slice(0, categoryTotals.length),
+                borderColor: 'rgba(10, 14, 39, 0.8)',
+                borderWidth: 2,
+              }]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: {
+                legend: {
+                  position: 'bottom',
+                  labels: {
+                    color: '#e2e8f0',
+                    font: {
+                      family: 'DM Sans',
+                      size: 12
+                    },
+                    padding: 15,
+                    usePointStyle: true,
+                  }
+                },
+                tooltip: {
+                  backgroundColor: 'rgba(18, 22, 48, 0.95)',
+                  titleColor: '#e2e8f0',
+                  bodyColor: '#94a3b8',
+                  borderColor: 'rgba(255, 255, 255, 0.1)',
+                  borderWidth: 1,
+                  padding: 12,
+                  displayColors: true,
+                  callbacks: {
+                    label: function(context) {
+                      return `£${context.parsed.toFixed(2)}`;
+                    }
+                  }
+                }
+              }
+            }
+          });
+        }
+
+        return () => {
+          if (chartInstance.current) {
+            chartInstance.current.destroy();
+          }
+        };
+      }, [categoryTotals]);
+
+      const handleEditStart = (bill) => {
         setEditingId(bill.id);
-        setEditValues({
-          projected: bill.projected,
-          actual: bill.actual,
-          date: bill.date || ''
+        setEditForm({ ...bill });
+      };
+
+      const handleEditSave = () => {
+        setBills(bills.map(b => b.id === editingId ? { ...editForm } : b));
+        setEditingId(null);
+        setEditForm({});
+      };
+
+      const handleDelete = (id) => {
+        if (confirm('Are you sure you want to delete this bill?')) {
+          setBills(bills.filter(b => b.id !== id));
+        }
+      };
+
+      const handleAddBill = () => {
+        const id = Date.now().toString();
+        setBills([...bills, { ...newBill, id }]);
+        setShowAddModal(false);
+        setNewBill({
+          name: '',
+          category: 'HOME',
+          projected: 0,
+          actual: 0,
+          paymentDate: '',
+          paid: false
         });
       };
 
-      const saveEdit = async (billId) => {
-        const updatedBills = bills.map(bill =>
-          bill.id === billId
-            ? {
-                ...bill,
-                projected: parseFloat(editValues.projected) || 0,
-                actual: parseFloat(editValues.actual) || 0,
-                date: editValues.date
-              }
-            : bill
-        );
-        setBills(updatedBills);
-        await saveToStorage(updatedBills);
-        setEditingId(null);
+      const handleTogglePaid = (id) => {
+        setBills(bills.map(b => 
+          b.id === id ? { ...b, paid: !b.paid } : b
+        ));
       };
 
-      const cancelEdit = () => {
-        setEditingId(null);
-        setEditValues({});
-      };
-
-      const deleteBill = async (billId) => {
-        if (!confirm('Are you sure you want to delete this bill?')) return;
-        const updatedBills = bills.filter(bill => bill.id !== billId);
-        setBills(updatedBills);
-        await saveToStorage(updatedBills);
-      };
-
-      const addBill = async () => {
-        if (!newBill.name || !newBill.category) {
-          alert('Please enter a bill name and select a category');
-          return;
-        }
-        
-        const bill = {
-          id: Math.max(...bills.map(b => b.id), 0) + 1,
-          ...newBill,
-          projected: parseFloat(newBill.projected) || 0,
-          actual: parseFloat(newBill.actual) || 0
-        };
-        
-        const updatedBills = [...bills, bill];
-        setBills(updatedBills);
-        await saveToStorage(updatedBills);
-        setNewBill({ category: '', name: '', projected: 0, actual: 0, date: '' });
-        setIsAddingBill(false);
-      };
-
-      const updateIncome = async (field, value) => {
-        const updatedIncome = { ...income, [field]: parseFloat(value) || 0 };
-        setIncome(updatedIncome);
-        await saveToStorage(bills, updatedIncome);
-      };
-
-      if (loading) {
-        return (
-          <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
-            <div className="text-white text-xl font-light">Loading your bills...</div>
-          </div>
-        );
-      }
+      const filteredBills = selectedCategory === 'ALL' 
+        ? bills 
+        : bills.filter(b => b.category === selectedCategory);
 
       return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 p-3 sm:p-6 pb-24" style={{fontFamily: 'Work Sans, sans-serif'}}>
-          <style>{`
-            h1, h2, h3 {
-              font-family: 'Playfair Display', serif;
-            }
-            
-            .gradient-border {
-              position: relative;
-              background: rgba(15, 23, 42, 0.8);
-              backdrop-filter: blur(12px);
-            }
-            
-            .gradient-border::before {
-              content: '';
-              position: absolute;
-              inset: 0;
-              border-radius: inherit;
-              padding: 1px;
-              background: linear-gradient(135deg, rgba(168, 85, 247, 0.4), rgba(59, 130, 246, 0.2));
-              -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-              -webkit-mask-composite: xor;
-              mask-composite: exclude;
-              pointer-events: none;
-              z-index: 0;
-            }
-            
-            .gradient-border > * {
-              position: relative;
-              z-index: 1;
-            }
-            
-            .card-hover {
-              transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            }
-            
-            .card-hover:hover {
-              transform: translateY(-2px);
-              box-shadow: 0 20px 40px rgba(168, 85, 247, 0.15);
-            }
-            
-            input:focus, select:focus {
-              outline: none;
-              box-shadow: 0 0 0 2px rgba(168, 85, 247, 0.3);
-            }
-            
-            .stat-card {
-              background: linear-gradient(135deg, rgba(168, 85, 247, 0.1) 0%, rgba(59, 130, 246, 0.05) 100%);
-            }
-          `}</style>
+        <div style={{ padding: '20px', maxWidth: '1400px', margin: '0 auto' }}>
+          {/* Header */}
+          <div style={{ marginBottom: '40px' }} className="animate-in">
+            <h1 className="font-display" style={{ fontSize: '48px', marginBottom: '8px', background: 'linear-gradient(135deg, #00d4ff, #7c3aed)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+              Financial Dashboard
+            </h1>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '16px' }}>
+              Track your monthly expenses with precision
+            </p>
+          </div>
 
-          <div className="max-w-4xl mx-auto">
-            <div className="text-center mb-8">
-              <h1 className="text-4xl sm:text-5xl font-black text-white mb-2 tracking-tight">
-                Monthly Bills
-              </h1>
-              <p className="text-purple-300 font-light text-sm sm:text-base">Track your expenses with precision</p>
+          {/* Stats Grid */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px', marginBottom: '40px' }}>
+            <div className="glass-card stat-card animate-in" style={{ padding: '24px', animationDelay: '0.1s' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+                <span style={{ color: 'var(--text-secondary)', fontSize: '14px', fontWeight: '500', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Income</span>
+                <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(16, 185, 129, 0.05))', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#10b981' }}>
+                  <Icons.DollarSign size={20} />
+                </div>
+              </div>
+              <div className="font-mono" style={{ fontSize: '32px', fontWeight: '700', marginBottom: '8px' }}>
+                £{income.toFixed(2)}
+              </div>
+              <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
+                Monthly income
+              </div>
             </div>
 
-            <div className="gradient-border rounded-2xl p-6 mb-6">
-              <h2 className="text-2xl font-bold text-white mb-4 flex items-center gap-2">
-                <span className="text-green-400"><DollarSign /></span>
-                Income
+            <div className="glass-card stat-card animate-in" style={{ padding: '24px', animationDelay: '0.2s' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+                <span style={{ color: 'var(--text-secondary)', fontSize: '14px', fontWeight: '500', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Expenses</span>
+                <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.2), rgba(239, 68, 68, 0.05))', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ef4444' }}>
+                  <Icons.TrendingUp size={20} />
+                </div>
+              </div>
+              <div className="font-mono" style={{ fontSize: '32px', fontWeight: '700', marginBottom: '8px' }}>
+                £{totals.actualExpenses.toFixed(2)}
+              </div>
+              <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
+                {totals.paidBills} of {totals.totalBills} bills paid
+              </div>
+            </div>
+
+            <div className="glass-card stat-card animate-in" style={{ padding: '24px', animationDelay: '0.3s' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+                <span style={{ color: 'var(--text-secondary)', fontSize: '14px', fontWeight: '500', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Balance</span>
+                <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: `linear-gradient(135deg, ${totals.actualBalance >= 0 ? 'rgba(0, 212, 255, 0.2), rgba(0, 212, 255, 0.05)' : 'rgba(239, 68, 68, 0.2), rgba(239, 68, 68, 0.05)'})`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: totals.actualBalance >= 0 ? '#00d4ff' : '#ef4444' }}>
+                  {totals.actualBalance >= 0 ? <Icons.TrendingUp size={20} /> : <Icons.TrendingDown size={20} />}
+                </div>
+              </div>
+              <div className="font-mono" style={{ fontSize: '32px', fontWeight: '700', marginBottom: '8px', color: totals.actualBalance >= 0 ? '#10b981' : '#ef4444' }}>
+                £{totals.actualBalance.toFixed(2)}
+              </div>
+              <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
+                Remaining this month
+              </div>
+            </div>
+
+            <div className="glass-card stat-card animate-in" style={{ padding: '24px', animationDelay: '0.4s' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+                <span style={{ color: 'var(--text-secondary)', fontSize: '14px', fontWeight: '500', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Variance</span>
+                <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: `linear-gradient(135deg, ${Math.abs(totals.difference) < 10 ? 'rgba(245, 158, 11, 0.2), rgba(245, 158, 11, 0.05)' : 'rgba(124, 58, 237, 0.2), rgba(124, 58, 237, 0.05)'})`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: Math.abs(totals.difference) < 10 ? '#f59e0b' : '#7c3aed' }}>
+                  <Icons.PieChart size={20} />
+                </div>
+              </div>
+              <div className="font-mono" style={{ fontSize: '32px', fontWeight: '700', marginBottom: '8px', color: totals.difference === 0 ? '#10b981' : totals.difference > 0 ? '#ef4444' : '#00d4ff' }}>
+                {totals.difference > 0 ? '+' : ''}£{totals.difference.toFixed(2)}
+              </div>
+              <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
+                vs projected budget
+              </div>
+            </div>
+          </div>
+
+          {/* Chart and Actions Row */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '20px', marginBottom: '40px' }}>
+            <div className="glass-card animate-in" style={{ padding: '32px', animationDelay: '0.5s' }}>
+              <h2 className="font-display" style={{ fontSize: '24px', marginBottom: '24px' }}>
+                Expense Breakdown
               </h2>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-purple-300 text-sm mb-1 block">Projected</label>
-                  <input
-                    type="number"
-                    value={income.projected}
-                    onChange={(e) => updateIncome('projected', e.target.value)}
-                    className="w-full bg-slate-800/50 text-white px-4 py-3 rounded-lg border border-purple-500/30 font-semibold text-lg"
-                  />
-                </div>
-                <div>
-                  <label className="text-purple-300 text-sm mb-1 block">Actual</label>
-                  <input
-                    type="number"
-                    value={income.actual}
-                    onChange={(e) => updateIncome('actual', e.target.value)}
-                    className="w-full bg-slate-800/50 text-white px-4 py-3 rounded-lg border border-purple-500/30 font-semibold text-lg"
-                  />
-                </div>
+              <div className="chart-container">
+                <canvas ref={chartRef}></canvas>
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-              <div className="stat-card rounded-xl p-5 border border-purple-500/20">
-                <div className="text-purple-300 text-xs font-medium mb-1">TOTAL EXPENSES</div>
-                <div className="text-white text-2xl font-bold">£{totalActual.toFixed(2)}</div>
-                <div className="text-purple-400 text-sm mt-1">
-                  Projected: £{totalProjected.toFixed(2)}
-                </div>
-              </div>
+            <div className="glass-card animate-in" style={{ padding: '32px', animationDelay: '0.6s' }}>
+              <h2 className="font-display" style={{ fontSize: '24px', marginBottom: '24px' }}>
+                Quick Actions
+              </h2>
               
-              <div className="stat-card rounded-xl p-5 border border-purple-500/20">
-                <div className="text-purple-300 text-xs font-medium mb-1">NET BALANCE</div>
-                <div className={`text-2xl font-bold ${netActual >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                  £{netActual.toFixed(2)}
-                </div>
-                <div className="text-purple-400 text-sm mt-1">
-                  Projected: £{netProjected.toFixed(2)}
-                </div>
+              <div style={{ marginBottom: '24px' }}>
+                <label style={{ display: 'block', color: 'var(--text-secondary)', fontSize: '13px', marginBottom: '8px', fontWeight: '500' }}>
+                  Monthly Income
+                </label>
+                <input
+                  type="number"
+                  className="input"
+                  value={income}
+                  onChange={(e) => setIncome(parseFloat(e.target.value) || 0)}
+                  style={{ marginBottom: '0' }}
+                />
               </div>
-              
-              <div className="stat-card rounded-xl p-5 border border-purple-500/20">
-                <div className="text-purple-300 text-xs font-medium mb-1">DIFFERENCE</div>
-                <div className={`text-2xl font-bold flex items-center gap-2 ${
-                  (totalProjected - totalActual) > 0 ? 'text-green-400' : 
-                  (totalProjected - totalActual) < 0 ? 'text-red-400' : 'text-white'
-                }`}>
-                  {(totalProjected - totalActual) > 0 ? <TrendingDown size={20} /> : 
-                   (totalProjected - totalActual) < 0 ? <TrendingUp size={20} /> : null}
-                  £{Math.abs(totalProjected - totalActual).toFixed(2)}
-                </div>
-              </div>
-            </div>
 
-            {categories.map(category => (
-              <div key={category} className="gradient-border rounded-2xl p-5 mb-5 card-hover">
-                <h3 className="text-xl font-bold text-purple-300 mb-4">{category}</h3>
-                <div className="space-y-3">
-                  {bills.filter(bill => bill.category === category).map(bill => (
-                    <div
-                      key={bill.id}
-                      className="bg-slate-800/40 rounded-lg p-4 border border-purple-500/20"
-                    >
-                      {editingId === bill.id ? (
-                        <div className="space-y-3">
-                          <div className="font-semibold text-white text-lg">{bill.name}</div>
-                          <div className="grid grid-cols-2 gap-3">
-                            <div>
-                              <label className="text-purple-300 text-xs mb-1 block">Projected</label>
-                              <input
-                                type="number"
-                                value={editValues.projected}
-                                onChange={(e) => setEditValues({...editValues, projected: e.target.value})}
-                                className="w-full bg-slate-900/50 text-white px-3 py-2 rounded-lg border border-purple-500/30 text-sm"
-                              />
-                            </div>
-                            <div>
-                              <label className="text-purple-300 text-xs mb-1 block">Actual</label>
-                              <input
-                                type="number"
-                                value={editValues.actual}
-                                onChange={(e) => setEditValues({...editValues, actual: e.target.value})}
-                                className="w-full bg-slate-900/50 text-white px-3 py-2 rounded-lg border border-purple-500/30 text-sm"
-                              />
-                            </div>
-                          </div>
-                          <div>
-                            <label className="text-purple-300 text-xs mb-1 block">Payment Date</label>
-                            <input
-                              type="text"
-                              value={editValues.date}
-                              onChange={(e) => setEditValues({...editValues, date: e.target.value})}
-                              className="w-full bg-slate-900/50 text-white px-3 py-2 rounded-lg border border-purple-500/30 text-sm"
-                              placeholder="e.g., 1st of each month"
-                            />
-                          </div>
-                          <div className="flex gap-2">
-                            <button
-                              onClick={() => saveEdit(bill.id)}
-                              className="flex-1 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center justify-center gap-2 transition-colors"
-                            >
-                              <Check size={16} /> Save
-                            </button>
-                            <button
-                              onClick={cancelEdit}
-                              className="flex-1 bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded-lg flex items-center justify-center gap-2 transition-colors"
-                            >
-                              <X size={16} /> Cancel
-                            </button>
-                          </div>
-                        </div>
-                      ) : (
-                        <div>
-                          <div className="flex justify-between items-start mb-2">
-                            <div className="flex-1">
-                              <div className="font-semibold text-white text-lg">{bill.name}</div>
-                              {bill.date && (
-                                <div className="text-purple-400 text-xs mt-1 flex items-center gap-1">
-                                  <Calendar size={12} />
-                                  {bill.date}
-                                </div>
-                              )}
-                            </div>
-                            <div className="flex gap-2">
-                              <button
-                                onClick={() => startEdit(bill)}
-                                className="text-purple-400 hover:text-purple-300 transition-colors p-2 hover:bg-purple-900/30 rounded cursor-pointer"
-                                type="button"
-                              >
-                                <Edit2 size={16} />
-                              </button>
-                              <button
-                                onClick={() => deleteBill(bill.id)}
-                                className="text-red-400 hover:text-red-300 transition-colors p-2 hover:bg-red-900/30 rounded cursor-pointer"
-                                type="button"
-                              >
-                                <Trash2 size={16} />
-                              </button>
-                            </div>
-                          </div>
-                          <div className="grid grid-cols-3 gap-3 text-sm">
-                            <div>
-                              <div className="text-purple-400 text-xs">Projected</div>
-                              <div className="text-white font-semibold">£{bill.projected.toFixed(2)}</div>
-                            </div>
-                            <div>
-                              <div className="text-purple-400 text-xs">Actual</div>
-                              <div className="text-white font-semibold">£{bill.actual.toFixed(2)}</div>
-                            </div>
-                            <div>
-                              <div className="text-purple-400 text-xs">Difference</div>
-                              <div className={`font-semibold ${
-                                bill.projected - bill.actual > 0 ? 'text-green-400' :
-                                bill.projected - bill.actual < 0 ? 'text-red-400' : 'text-white'
-                              }`}>
-                                £{(bill.projected - bill.actual).toFixed(2)}
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      )}
+              <button 
+                className="btn btn-primary" 
+                onClick={() => setShowAddModal(true)}
+                style={{ width: '100%', justifyContent: 'center', marginBottom: '16px' }}
+              >
+                <Icons.Plus size={20} />
+                Add New Bill
+              </button>
+
+              <div style={{ padding: '20px', background: 'var(--glass)', borderRadius: '12px', border: '1px solid var(--border)' }}>
+                <h3 style={{ fontSize: '14px', fontWeight: '600', marginBottom: '12px', color: 'var(--text-secondary)' }}>
+                  Category Summary
+                </h3>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {categoryTotals.map((cat, i) => (
+                    <div key={cat.name} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0' }}>
+                      <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>{cat.name}</span>
+                      <span className="font-mono" style={{ fontSize: '14px', fontWeight: '600' }}>£{cat.total.toFixed(2)}</span>
                     </div>
                   ))}
                 </div>
               </div>
-            ))}
+            </div>
+          </div>
 
-            {!isAddingBill ? (
-              <button
-                onClick={() => setIsAddingBill(true)}
-                className="w-full bg-purple-600 hover:bg-purple-700 text-white py-4 rounded-xl flex items-center justify-center gap-2 font-semibold transition-colors mb-6"
+          {/* Category Filter */}
+          <div className="animate-in" style={{ marginBottom: '20px', animationDelay: '0.7s' }}>
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+              <button 
+                className={`btn ${selectedCategory === 'ALL' ? 'btn-primary' : 'btn-secondary'}`}
+                onClick={() => setSelectedCategory('ALL')}
               >
-                <Plus size={20} /> Add New Bill
+                All Bills
               </button>
-            ) : (
-              <div className="gradient-border rounded-2xl p-6 mb-6">
-                <h3 className="text-xl font-bold text-white mb-4">Add New Bill</h3>
-                <div className="space-y-4">
-                  <div>
-                    <label className="text-purple-300 text-sm mb-1 block">Category</label>
-                    <select
-                      value={newBill.category}
-                      onChange={(e) => setNewBill({...newBill, category: e.target.value})}
-                      className="w-full bg-slate-800/50 text-white px-4 py-3 rounded-lg border border-purple-500/30"
-                    >
-                      <option value="">Select category</option>
-                      {categories.map(cat => (
-                        <option key={cat} value={cat}>{cat}</option>
-                      ))}
-                      <option value="NEW">+ New Category</option>
-                    </select>
-                  </div>
-                  {newBill.category === 'NEW' && (
-                    <div>
-                      <label className="text-purple-300 text-sm mb-1 block">New Category Name</label>
-                      <input
-                        type="text"
-                        onChange={(e) => setNewBill({...newBill, category: e.target.value.toUpperCase()})}
-                        className="w-full bg-slate-800/50 text-white px-4 py-3 rounded-lg border border-purple-500/30"
-                        placeholder="Enter category name"
-                      />
-                    </div>
-                  )}
-                  <div>
-                    <label className="text-purple-300 text-sm mb-1 block">Bill Name</label>
-                    <input
-                      type="text"
-                      value={newBill.name}
-                      onChange={(e) => setNewBill({...newBill, name: e.target.value})}
-                      className="w-full bg-slate-800/50 text-white px-4 py-3 rounded-lg border border-purple-500/30"
-                      placeholder="e.g., Electric Bill"
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="text-purple-300 text-sm mb-1 block">Projected Amount</label>
-                      <input
-                        type="number"
-                        value={newBill.projected}
-                        onChange={(e) => setNewBill({...newBill, projected: e.target.value})}
-                        className="w-full bg-slate-800/50 text-white px-4 py-3 rounded-lg border border-purple-500/30"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-purple-300 text-sm mb-1 block">Actual Amount</label>
-                      <input
-                        type="number"
-                        value={newBill.actual}
-                        onChange={(e) => setNewBill({...newBill, actual: e.target.value})}
-                        className="w-full bg-slate-800/50 text-white px-4 py-3 rounded-lg border border-purple-500/30"
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="text-purple-300 text-sm mb-1 block">Payment Date</label>
-                    <input
-                      type="text"
-                      value={newBill.date}
-                      onChange={(e) => setNewBill({...newBill, date: e.target.value})}
-                      className="w-full bg-slate-800/50 text-white px-4 py-3 rounded-lg border border-purple-500/30"
-                      placeholder="e.g., 1st of each month"
-                    />
-                  </div>
-                  <div className="flex gap-3">
-                    <button
-                      onClick={addBill}
-                      className="flex-1 bg-green-600 hover:bg-green-700 text-white py-3 rounded-lg font-semibold transition-colors"
-                    >
-                      Add Bill
+              {categories.map(cat => (
+                <button 
+                  key={cat}
+                  className={`btn ${selectedCategory === cat ? 'btn-primary' : 'btn-secondary'}`}
+                  onClick={() => setSelectedCategory(cat)}
+                >
+                  {cat}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Bills List */}
+          <div className="glass-card animate-in" style={{ padding: '0', overflow: 'hidden', animationDelay: '0.8s' }}>
+            <div style={{ padding: '24px', borderBottom: '1px solid var(--border)' }}>
+              <h2 className="font-display" style={{ fontSize: '28px' }}>
+                {selectedCategory === 'ALL' ? 'All Bills' : selectedCategory}
+              </h2>
+              <p style={{ color: 'var(--text-secondary)', fontSize: '14px', marginTop: '4px' }}>
+                {filteredBills.length} {filteredBills.length === 1 ? 'bill' : 'bills'}
+              </p>
+            </div>
+
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr style={{ borderBottom: '1px solid var(--border)' }}>
+                    <th style={{ padding: '16px 24px', textAlign: 'left', color: 'var(--text-secondary)', fontSize: '13px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Status</th>
+                    <th style={{ padding: '16px 24px', textAlign: 'left', color: 'var(--text-secondary)', fontSize: '13px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Bill Name</th>
+                    <th style={{ padding: '16px 24px', textAlign: 'left', color: 'var(--text-secondary)', fontSize: '13px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Category</th>
+                    <th style={{ padding: '16px 24px', textAlign: 'right', color: 'var(--text-secondary)', fontSize: '13px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Projected</th>
+                    <th style={{ padding: '16px 24px', textAlign: 'right', color: 'var(--text-secondary)', fontSize: '13px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Actual</th>
+                    <th style={{ padding: '16px 24px', textAlign: 'center', color: 'var(--text-secondary)', fontSize: '13px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Due Date</th>
+                    <th style={{ padding: '16px 24px', textAlign: 'right', color: 'var(--text-secondary)', fontSize: '13px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredBills.map((bill, index) => (
+                    <tr key={bill.id} style={{ borderBottom: '1px solid var(--border)', transition: 'background 0.2s' }} onMouseEnter={(e) => e.currentTarget.style.background = 'var(--glass)'} onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
+                      <td style={{ padding: '16px 24px' }}>
+                        <button
+                          onClick={() => handleTogglePaid(bill.id)}
+                          style={{
+                            width: '24px',
+                            height: '24px',
+                            borderRadius: '6px',
+                            border: bill.paid ? 'none' : '2px solid var(--border)',
+                            background: bill.paid ? 'linear-gradient(135deg, #10b981, #059669)' : 'transparent',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            transition: 'all 0.2s'
+                          }}
+                        >
+                          {bill.paid && <Icons.Check size={16} />}
+                        </button>
+                      </td>
+                      <td style={{ padding: '16px 24px' }}>
+                        {editingId === bill.id ? (
+                          <input
+                            className="input"
+                            value={editForm.name}
+                            onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                            style={{ minWidth: '200px', padding: '8px 12px' }}
+                          />
+                        ) : (
+                          <div>
+                            <div style={{ fontWeight: '500', fontSize: '15px', marginBottom: '2px' }}>{bill.name}</div>
+                            {bill.paid && (
+                              <div style={{ fontSize: '12px', color: '#10b981', display: 'inline-flex', alignItems: 'center', gap: '4px', background: 'rgba(16, 185, 129, 0.1)', padding: '2px 8px', borderRadius: '4px' }}>
+                                <Icons.Check size={12} />
+                                Paid
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </td>
+                      <td style={{ padding: '16px 24px' }}>
+                        {editingId === bill.id ? (
+                          <select
+                            className="input"
+                            value={editForm.category}
+                            onChange={(e) => setEditForm({ ...editForm, category: e.target.value })}
+                            style={{ padding: '8px 12px' }}
+                          >
+                            {categories.map(cat => (
+                              <option key={cat} value={cat}>{cat}</option>
+                            ))}
+                          </select>
+                        ) : (
+                          <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>{bill.category}</span>
+                        )}
+                      </td>
+                      <td style={{ padding: '16px 24px', textAlign: 'right' }}>
+                        {editingId === bill.id ? (
+                          <input
+                            type="number"
+                            className="input"
+                            value={editForm.projected}
+                            onChange={(e) => setEditForm({ ...editForm, projected: parseFloat(e.target.value) || 0 })}
+                            style={{ width: '100px', padding: '8px 12px', textAlign: 'right' }}
+                          />
+                        ) : (
+                          <span className="font-mono" style={{ fontSize: '14px', fontWeight: '500' }}>£{bill.projected.toFixed(2)}</span>
+                        )}
+                      </td>
+                      <td style={{ padding: '16px 24px', textAlign: 'right' }}>
+                        {editingId === bill.id ? (
+                          <input
+                            type="number"
+                            className="input"
+                            value={editForm.actual}
+                            onChange={(e) => setEditForm({ ...editForm, actual: parseFloat(e.target.value) || 0 })}
+                            style={{ width: '100px', padding: '8px 12px', textAlign: 'right' }}
+                          />
+                        ) : (
+                          <div>
+                            <span className="font-mono" style={{ fontSize: '14px', fontWeight: '600' }}>£{bill.actual.toFixed(2)}</span>
+                            {bill.actual !== bill.projected && (
+                              <div style={{ fontSize: '11px', color: bill.actual > bill.projected ? '#ef4444' : '#10b981', marginTop: '2px' }}>
+                                {bill.actual > bill.projected ? '+' : ''}£{(bill.actual - bill.projected).toFixed(2)}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </td>
+                      <td style={{ padding: '16px 24px', textAlign: 'center' }}>
+                        {editingId === bill.id ? (
+                          <input
+                            className="input"
+                            value={editForm.paymentDate}
+                            onChange={(e) => setEditForm({ ...editForm, paymentDate: e.target.value })}
+                            style={{ width: '100px', padding: '8px 12px', textAlign: 'center' }}
+                          />
+                        ) : (
+                          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '6px 12px', background: 'var(--glass)', borderRadius: '8px', border: '1px solid var(--border)' }}>
+                            <Icons.Calendar size={14} />
+                            <span style={{ fontSize: '13px' }}>{bill.paymentDate}</span>
+                          </div>
+                        )}
+                      </td>
+                      <td style={{ padding: '16px 24px', textAlign: 'right' }}>
+                        <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                          {editingId === bill.id ? (
+                            <>
+                              <button className="btn btn-icon btn-primary" onClick={handleEditSave}>
+                                <Icons.Check size={18} />
+                              </button>
+                              <button className="btn btn-icon btn-secondary" onClick={() => setEditingId(null)}>
+                                <Icons.X size={18} />
+                              </button>
+                            </>
+                          ) : (
+                            <>
+                              <button className="btn btn-icon btn-secondary" onClick={() => handleEditStart(bill)}>
+                                <Icons.Edit size={18} />
+                              </button>
+                              <button className="btn btn-icon btn-secondary" onClick={() => handleDelete(bill.id)} style={{ color: '#ef4444' }}>
+                                <Icons.Trash size={18} />
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Add Bill Modal */}
+          {showAddModal && (
+            <div className="modal-overlay" onClick={() => setShowAddModal(false)}>
+              <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+                <div style={{ padding: '32px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
+                    <h2 className="font-display" style={{ fontSize: '28px' }}>Add New Bill</h2>
+                    <button className="btn btn-icon btn-secondary" onClick={() => setShowAddModal(false)}>
+                      <Icons.X size={20} />
                     </button>
-                    <button
-                      onClick={() => {
-                        setIsAddingBill(false);
-                        setNewBill({ category: '', name: '', projected: 0, actual: 0, date: '' });
-                      }}
-                      className="flex-1 bg-slate-700 hover:bg-slate-600 text-white py-3 rounded-lg font-semibold transition-colors"
-                    >
-                      Cancel
-                    </button>
+                  </div>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                    <div>
+                      <label style={{ display: 'block', color: 'var(--text-secondary)', fontSize: '13px', marginBottom: '8px', fontWeight: '500' }}>
+                        Bill Name
+                      </label>
+                      <input
+                        className="input"
+                        placeholder="e.g., Electric Bill"
+                        value={newBill.name}
+                        onChange={(e) => setNewBill({ ...newBill, name: e.target.value })}
+                      />
+                    </div>
+
+                    <div>
+                      <label style={{ display: 'block', color: 'var(--text-secondary)', fontSize: '13px', marginBottom: '8px', fontWeight: '500' }}>
+                        Category
+                      </label>
+                      <select
+                        className="input"
+                        value={newBill.category}
+                        onChange={(e) => setNewBill({ ...newBill, category: e.target.value })}
+                      >
+                        {categories.map(cat => (
+                          <option key={cat} value={cat}>{cat}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                      <div>
+                        <label style={{ display: 'block', color: 'var(--text-secondary)', fontSize: '13px', marginBottom: '8px', fontWeight: '500' }}>
+                          Projected Amount
+                        </label>
+                        <input
+                          type="number"
+                          className="input"
+                          placeholder="0.00"
+                          value={newBill.projected}
+                          onChange={(e) => setNewBill({ ...newBill, projected: parseFloat(e.target.value) || 0 })}
+                        />
+                      </div>
+
+                      <div>
+                        <label style={{ display: 'block', color: 'var(--text-secondary)', fontSize: '13px', marginBottom: '8px', fontWeight: '500' }}>
+                          Actual Amount
+                        </label>
+                        <input
+                          type="number"
+                          className="input"
+                          placeholder="0.00"
+                          value={newBill.actual}
+                          onChange={(e) => setNewBill({ ...newBill, actual: parseFloat(e.target.value) || 0 })}
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label style={{ display: 'block', color: 'var(--text-secondary)', fontSize: '13px', marginBottom: '8px', fontWeight: '500' }}>
+                        Payment Date
+                      </label>
+                      <input
+                        className="input"
+                        placeholder="e.g., 15th"
+                        value={newBill.paymentDate}
+                        onChange={(e) => setNewBill({ ...newBill, paymentDate: e.target.value })}
+                      />
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '12px', marginTop: '8px' }}>
+                      <button 
+                        className="btn btn-primary" 
+                        onClick={handleAddBill}
+                        style={{ flex: 1, justifyContent: 'center' }}
+                        disabled={!newBill.name}
+                      >
+                        <Icons.Plus size={20} />
+                        Add Bill
+                      </button>
+                      <button 
+                        className="btn btn-secondary" 
+                        onClick={() => setShowAddModal(false)}
+                        style={{ flex: 1, justifyContent: 'center' }}
+                      >
+                        Cancel
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
-            )}
+            </div>
+          )}
+
+          {/* Footer */}
+          <div style={{ marginTop: '60px', padding: '24px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '13px' }}>
+            <p>Your financial data is stored locally in your browser</p>
           </div>
         </div>
       );
     }
 
     const root = ReactDOM.createRoot(document.getElementById('root'));
-    root.render(<MonthlyBillsTracker />);
+    root.render(<BillsTracker />);
   </script>
 </body>
 </html>
