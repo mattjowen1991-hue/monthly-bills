@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#1e1b4b">
+  <title>Monthly Bills Tracker</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Work+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            'playfair': ['Playfair Display', 'serif'],
+            'work': ['Work Sans', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: 'Work Sans', sans-serif;
+      background: linear-gradient(to bottom right, #0f172a, #581c87, #0f172a);
+      min-height: 100vh;
+    }
+    
+    #root {
+      width: 100%;
+      min-height: 100vh;
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect } = React;
+    
+    // Simple SVG icon components
+    const DollarSign = () => (
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <line x1="12" y1="1" x2="12" y2="23"></line>
+        <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+      </svg>
+    );
+    
+    const TrendingUp = ({ size = 24 }) => (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline>
+        <polyline points="17 6 23 6 23 12"></polyline>
+      </svg>
+    );
+    
+    const TrendingDown = ({ size = 24 }) => (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <polyline points="23 18 13.5 8.5 8.5 13.5 1 6"></polyline>
+        <polyline points="17 18 23 18 23 12"></polyline>
+      </svg>
+    );
+    
+    const Calendar = ({ size = 24 }) => (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+        <line x1="16" y1="2" x2="16" y2="6"></line>
+        <line x1="8" y1="2" x2="8" y2="6"></line>
+        <line x1="3" y1="10" x2="21" y2="10"></line>
+      </svg>
+    );
+    
+    const Edit2 = ({ size = 24 }) => (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
+      </svg>
+    );
+    
+    const Check = ({ size = 24 }) => (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <polyline points="20 6 9 17 4 12"></polyline>
+      </svg>
+    );
+    
+    const X = ({ size = 24 }) => (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <line x1="18" y1="6" x2="6" y2="18"></line>
+        <line x1="6" y1="6" x2="18" y2="18"></line>
+      </svg>
+    );
+    
+    const Plus = ({ size = 24 }) => (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <line x1="12" y1="5" x2="12" y2="19"></line>
+        <line x1="5" y1="12" x2="19" y2="12"></line>
+      </svg>
+    );
+    
+    const Trash2 = ({ size = 24 }) => (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <polyline points="3 6 5 6 21 6"></polyline>
+        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+        <line x1="10" y1="11" x2="10" y2="17"></line>
+        <line x1="14" y1="11" x2="14" y2="17"></line>
+      </svg>
+    );
+
+    // Simple localStorage wrapper to match the storage API
+    const storage = {
+      get: async (key) => {
+        try {
+          const value = localStorage.getItem(key);
+          return value ? { key, value, shared: false } : null;
+        } catch (error) {
+          console.error('Storage get error:', error);
+          return null;
+        }
+      },
+      set: async (key, value) => {
+        try {
+          localStorage.setItem(key, value);
+          return { key, value, shared: false };
+        } catch (error) {
+          console.error('Storage set error:', error);
+          return null;
+        }
+      }
+    };
+
+    function MonthlyBillsTracker() {
+      const [bills, setBills] = useState([]);
+      const [income, setIncome] = useState({ projected: 1960, actual: 1960 });
+      const [editingId, setEditingId] = useState(null);
+      const [editValues, setEditValues] = useState({});
+      const [isAddingBill, setIsAddingBill] = useState(false);
+      const [newBill, setNewBill] = useState({ category: '', name: '', projected: 0, actual: 0, date: '' });
+      const [loading, setLoading] = useState(true);
+
+      useEffect(() => {
+        const loadData = async () => {
+          try {
+            const billsResult = await storage.get('bills-data');
+            const incomeResult = await storage.get('income-data');
+            
+            if (billsResult?.value) {
+              setBills(JSON.parse(billsResult.value));
+            } else {
+              const initialBills = [
+                { id: 1, category: 'HOME', name: 'Eon', projected: 124, actual: 124, date: '1st of each month (Joint Account)' },
+                { id: 2, category: 'HOME', name: 'Domestic & General', projected: 10.5, actual: 10.5, date: '1st of each month (Joint Account)' },
+                { id: 3, category: 'HOME', name: 'Vodafone Airtime', projected: 23.4, actual: 23.4, date: '1st of each month (Joint Account)' },
+                { id: 4, category: 'HOME', name: 'Vodafone Broadband', projected: 22.5, actual: 22.5, date: '1st of each month (Joint Account)' },
+                { id: 5, category: 'HOME', name: 'TV License', projected: 7.5, actual: 7.5, date: '1st of each month (Joint Account)' },
+                { id: 6, category: 'HOME', name: 'Rent', projected: 244.84, actual: 244.84, date: '1st of each month (Joint Account)' },
+                { id: 7, category: 'HOME', name: 'OneCall', projected: 8.5, actual: 8.5, date: '1st of each month (Joint Account)' },
+                { id: 8, category: 'HOME', name: 'Shopping', projected: 200, actual: 200, date: '1st of each month (Joint Account)' },
+                { id: 9, category: 'HOME', name: 'Council Tax', projected: 0, actual: 0, date: 'TBC (Joint Account)' },
+                { id: 10, category: 'HOME', name: 'SevernTrent', projected: 57, actual: 57, date: '12th of each month (Joint Account)' },
+                { id: 11, category: 'HOME', name: 'Ring', projected: 4, actual: 4, date: '1st of each month (Joint Account)' },
+                { id: 12, category: 'HOME', name: 'Virgin Pure', projected: 7.5, actual: 7.5, date: '4th of each month (Joint Account)' },
+                { id: 13, category: 'HOME', name: 'Tesco Mobile', projected: 8, actual: 8, date: '1st of each month' },
+                { id: 14, category: 'HOME', name: 'Vodafone Device', projected: 23, actual: 23, date: '1st of each month' },
+                { id: 15, category: 'HOME', name: 'Lisa', projected: 10, actual: 10, date: '1st of each month' },
+                { id: 16, category: 'TRANSPORTATION', name: 'Fuel', projected: 60, actual: 60, date: '1st of each month' },
+                { id: 17, category: 'CREDIT CARDS', name: 'Loan', projected: 250, actual: 250, date: '1st of each month' },
+                { id: 18, category: 'CREDIT CARDS', name: 'PayPal', projected: 0, actual: 0, date: '1st of each month' },
+                { id: 19, category: 'CREDIT CARDS', name: 'Barclays', projected: 0, actual: 0, date: '' },
+                { id: 20, category: 'ENTERTAINMENT', name: 'Netflix', projected: 6.5, actual: 6.5, date: '1st of each month (Joint Account)' },
+              ];
+              setBills(initialBills);
+              await storage.set('bills-data', JSON.stringify(initialBills));
+            }
+            
+            if (incomeResult?.value) {
+              setIncome(JSON.parse(incomeResult.value));
+            } else {
+              await storage.set('income-data', JSON.stringify(income));
+            }
+          } catch (error) {
+            console.error('Error loading data:', error);
+          } finally {
+            setLoading(false);
+          }
+        };
+        
+        loadData();
+      }, []);
+
+      const saveToStorage = async (updatedBills, updatedIncome) => {
+        try {
+          await storage.set('bills-data', JSON.stringify(updatedBills));
+          if (updatedIncome) {
+            await storage.set('income-data', JSON.stringify(updatedIncome));
+          }
+        } catch (error) {
+          console.error('Error saving data:', error);
+        }
+      };
+
+      const totalProjected = bills.reduce((sum, bill) => sum + (bill.projected || 0), 0);
+      const totalActual = bills.reduce((sum, bill) => sum + (bill.actual || 0), 0);
+      const netProjected = income.projected - totalProjected;
+      const netActual = income.actual - totalActual;
+
+      const categories = [...new Set(bills.map(bill => bill.category))];
+
+      const startEdit = (bill) => {
+        console.log('Edit clicked for bill:', bill);
+        setEditingId(bill.id);
+        setEditValues({
+          projected: bill.projected,
+          actual: bill.actual,
+          date: bill.date || ''
+        });
+      };
+
+      const saveEdit = async (billId) => {
+        const updatedBills = bills.map(bill =>
+          bill.id === billId
+            ? {
+                ...bill,
+                projected: parseFloat(editValues.projected) || 0,
+                actual: parseFloat(editValues.actual) || 0,
+                date: editValues.date
+              }
+            : bill
+        );
+        setBills(updatedBills);
+        await saveToStorage(updatedBills);
+        setEditingId(null);
+      };
+
+      const cancelEdit = () => {
+        setEditingId(null);
+        setEditValues({});
+      };
+
+      const deleteBill = async (billId) => {
+        if (!confirm('Are you sure you want to delete this bill?')) return;
+        const updatedBills = bills.filter(bill => bill.id !== billId);
+        setBills(updatedBills);
+        await saveToStorage(updatedBills);
+      };
+
+      const addBill = async () => {
+        if (!newBill.name || !newBill.category) {
+          alert('Please enter a bill name and select a category');
+          return;
+        }
+        
+        const bill = {
+          id: Math.max(...bills.map(b => b.id), 0) + 1,
+          ...newBill,
+          projected: parseFloat(newBill.projected) || 0,
+          actual: parseFloat(newBill.actual) || 0
+        };
+        
+        const updatedBills = [...bills, bill];
+        setBills(updatedBills);
+        await saveToStorage(updatedBills);
+        setNewBill({ category: '', name: '', projected: 0, actual: 0, date: '' });
+        setIsAddingBill(false);
+      };
+
+      const updateIncome = async (field, value) => {
+        const updatedIncome = { ...income, [field]: parseFloat(value) || 0 };
+        setIncome(updatedIncome);
+        await saveToStorage(bills, updatedIncome);
+      };
+
+      if (loading) {
+        return (
+          <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
+            <div className="text-white text-xl font-light">Loading your bills...</div>
+          </div>
+        );
+      }
+
+      return (
+        <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 p-3 sm:p-6 pb-24" style={{fontFamily: 'Work Sans, sans-serif'}}>
+          <style>{`
+            h1, h2, h3 {
+              font-family: 'Playfair Display', serif;
+            }
+            
+            .gradient-border {
+              position: relative;
+              background: rgba(15, 23, 42, 0.8);
+              backdrop-filter: blur(12px);
+            }
+            
+            .gradient-border::before {
+              content: '';
+              position: absolute;
+              inset: 0;
+              border-radius: inherit;
+              padding: 1px;
+              background: linear-gradient(135deg, rgba(168, 85, 247, 0.4), rgba(59, 130, 246, 0.2));
+              -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+              -webkit-mask-composite: xor;
+              mask-composite: exclude;
+              pointer-events: none;
+              z-index: 0;
+            }
+            
+            .gradient-border > * {
+              position: relative;
+              z-index: 1;
+            }
+            
+            .card-hover {
+              transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            }
+            
+            .card-hover:hover {
+              transform: translateY(-2px);
+              box-shadow: 0 20px 40px rgba(168, 85, 247, 0.15);
+            }
+            
+            input:focus, select:focus {
+              outline: none;
+              box-shadow: 0 0 0 2px rgba(168, 85, 247, 0.3);
+            }
+            
+            .stat-card {
+              background: linear-gradient(135deg, rgba(168, 85, 247, 0.1) 0%, rgba(59, 130, 246, 0.05) 100%);
+            }
+          `}</style>
+
+          <div className="max-w-4xl mx-auto">
+            <div className="text-center mb-8">
+              <h1 className="text-4xl sm:text-5xl font-black text-white mb-2 tracking-tight">
+                Monthly Bills
+              </h1>
+              <p className="text-purple-300 font-light text-sm sm:text-base">Track your expenses with precision</p>
+            </div>
+
+            <div className="gradient-border rounded-2xl p-6 mb-6">
+              <h2 className="text-2xl font-bold text-white mb-4 flex items-center gap-2">
+                <span className="text-green-400"><DollarSign /></span>
+                Income
+              </h2>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-purple-300 text-sm mb-1 block">Projected</label>
+                  <input
+                    type="number"
+                    value={income.projected}
+                    onChange={(e) => updateIncome('projected', e.target.value)}
+                    className="w-full bg-slate-800/50 text-white px-4 py-3 rounded-lg border border-purple-500/30 font-semibold text-lg"
+                  />
+                </div>
+                <div>
+                  <label className="text-purple-300 text-sm mb-1 block">Actual</label>
+                  <input
+                    type="number"
+                    value={income.actual}
+                    onChange={(e) => updateIncome('actual', e.target.value)}
+                    className="w-full bg-slate-800/50 text-white px-4 py-3 rounded-lg border border-purple-500/30 font-semibold text-lg"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+              <div className="stat-card rounded-xl p-5 border border-purple-500/20">
+                <div className="text-purple-300 text-xs font-medium mb-1">TOTAL EXPENSES</div>
+                <div className="text-white text-2xl font-bold">£{totalActual.toFixed(2)}</div>
+                <div className="text-purple-400 text-sm mt-1">
+                  Projected: £{totalProjected.toFixed(2)}
+                </div>
+              </div>
+              
+              <div className="stat-card rounded-xl p-5 border border-purple-500/20">
+                <div className="text-purple-300 text-xs font-medium mb-1">NET BALANCE</div>
+                <div className={`text-2xl font-bold ${netActual >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                  £{netActual.toFixed(2)}
+                </div>
+                <div className="text-purple-400 text-sm mt-1">
+                  Projected: £{netProjected.toFixed(2)}
+                </div>
+              </div>
+              
+              <div className="stat-card rounded-xl p-5 border border-purple-500/20">
+                <div className="text-purple-300 text-xs font-medium mb-1">DIFFERENCE</div>
+                <div className={`text-2xl font-bold flex items-center gap-2 ${
+                  (totalProjected - totalActual) > 0 ? 'text-green-400' : 
+                  (totalProjected - totalActual) < 0 ? 'text-red-400' : 'text-white'
+                }`}>
+                  {(totalProjected - totalActual) > 0 ? <TrendingDown size={20} /> : 
+                   (totalProjected - totalActual) < 0 ? <TrendingUp size={20} /> : null}
+                  £{Math.abs(totalProjected - totalActual).toFixed(2)}
+                </div>
+              </div>
+            </div>
+
+            {categories.map(category => (
+              <div key={category} className="gradient-border rounded-2xl p-5 mb-5 card-hover">
+                <h3 className="text-xl font-bold text-purple-300 mb-4">{category}</h3>
+                <div className="space-y-3">
+                  {bills.filter(bill => bill.category === category).map(bill => (
+                    <div
+                      key={bill.id}
+                      className="bg-slate-800/40 rounded-lg p-4 border border-purple-500/20"
+                    >
+                      {editingId === bill.id ? (
+                        <div className="space-y-3">
+                          <div className="font-semibold text-white text-lg">{bill.name}</div>
+                          <div className="grid grid-cols-2 gap-3">
+                            <div>
+                              <label className="text-purple-300 text-xs mb-1 block">Projected</label>
+                              <input
+                                type="number"
+                                value={editValues.projected}
+                                onChange={(e) => setEditValues({...editValues, projected: e.target.value})}
+                                className="w-full bg-slate-900/50 text-white px-3 py-2 rounded-lg border border-purple-500/30 text-sm"
+                              />
+                            </div>
+                            <div>
+                              <label className="text-purple-300 text-xs mb-1 block">Actual</label>
+                              <input
+                                type="number"
+                                value={editValues.actual}
+                                onChange={(e) => setEditValues({...editValues, actual: e.target.value})}
+                                className="w-full bg-slate-900/50 text-white px-3 py-2 rounded-lg border border-purple-500/30 text-sm"
+                              />
+                            </div>
+                          </div>
+                          <div>
+                            <label className="text-purple-300 text-xs mb-1 block">Payment Date</label>
+                            <input
+                              type="text"
+                              value={editValues.date}
+                              onChange={(e) => setEditValues({...editValues, date: e.target.value})}
+                              className="w-full bg-slate-900/50 text-white px-3 py-2 rounded-lg border border-purple-500/30 text-sm"
+                              placeholder="e.g., 1st of each month"
+                            />
+                          </div>
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => saveEdit(bill.id)}
+                              className="flex-1 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center justify-center gap-2 transition-colors"
+                            >
+                              <Check size={16} /> Save
+                            </button>
+                            <button
+                              onClick={cancelEdit}
+                              className="flex-1 bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded-lg flex items-center justify-center gap-2 transition-colors"
+                            >
+                              <X size={16} /> Cancel
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div>
+                          <div className="flex justify-between items-start mb-2">
+                            <div className="flex-1">
+                              <div className="font-semibold text-white text-lg">{bill.name}</div>
+                              {bill.date && (
+                                <div className="text-purple-400 text-xs mt-1 flex items-center gap-1">
+                                  <Calendar size={12} />
+                                  {bill.date}
+                                </div>
+                              )}
+                            </div>
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => startEdit(bill)}
+                                className="text-purple-400 hover:text-purple-300 transition-colors p-2 hover:bg-purple-900/30 rounded cursor-pointer"
+                                type="button"
+                              >
+                                <Edit2 size={16} />
+                              </button>
+                              <button
+                                onClick={() => deleteBill(bill.id)}
+                                className="text-red-400 hover:text-red-300 transition-colors p-2 hover:bg-red-900/30 rounded cursor-pointer"
+                                type="button"
+                              >
+                                <Trash2 size={16} />
+                              </button>
+                            </div>
+                          </div>
+                          <div className="grid grid-cols-3 gap-3 text-sm">
+                            <div>
+                              <div className="text-purple-400 text-xs">Projected</div>
+                              <div className="text-white font-semibold">£{bill.projected.toFixed(2)}</div>
+                            </div>
+                            <div>
+                              <div className="text-purple-400 text-xs">Actual</div>
+                              <div className="text-white font-semibold">£{bill.actual.toFixed(2)}</div>
+                            </div>
+                            <div>
+                              <div className="text-purple-400 text-xs">Difference</div>
+                              <div className={`font-semibold ${
+                                bill.projected - bill.actual > 0 ? 'text-green-400' :
+                                bill.projected - bill.actual < 0 ? 'text-red-400' : 'text-white'
+                              }`}>
+                                £{(bill.projected - bill.actual).toFixed(2)}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+
+            {!isAddingBill ? (
+              <button
+                onClick={() => setIsAddingBill(true)}
+                className="w-full bg-purple-600 hover:bg-purple-700 text-white py-4 rounded-xl flex items-center justify-center gap-2 font-semibold transition-colors mb-6"
+              >
+                <Plus size={20} /> Add New Bill
+              </button>
+            ) : (
+              <div className="gradient-border rounded-2xl p-6 mb-6">
+                <h3 className="text-xl font-bold text-white mb-4">Add New Bill</h3>
+                <div className="space-y-4">
+                  <div>
+                    <label className="text-purple-300 text-sm mb-1 block">Category</label>
+                    <select
+                      value={newBill.category}
+                      onChange={(e) => setNewBill({...newBill, category: e.target.value})}
+                      className="w-full bg-slate-800/50 text-white px-4 py-3 rounded-lg border border-purple-500/30"
+                    >
+                      <option value="">Select category</option>
+                      {categories.map(cat => (
+                        <option key={cat} value={cat}>{cat}</option>
+                      ))}
+                      <option value="NEW">+ New Category</option>
+                    </select>
+                  </div>
+                  {newBill.category === 'NEW' && (
+                    <div>
+                      <label className="text-purple-300 text-sm mb-1 block">New Category Name</label>
+                      <input
+                        type="text"
+                        onChange={(e) => setNewBill({...newBill, category: e.target.value.toUpperCase()})}
+                        className="w-full bg-slate-800/50 text-white px-4 py-3 rounded-lg border border-purple-500/30"
+                        placeholder="Enter category name"
+                      />
+                    </div>
+                  )}
+                  <div>
+                    <label className="text-purple-300 text-sm mb-1 block">Bill Name</label>
+                    <input
+                      type="text"
+                      value={newBill.name}
+                      onChange={(e) => setNewBill({...newBill, name: e.target.value})}
+                      className="w-full bg-slate-800/50 text-white px-4 py-3 rounded-lg border border-purple-500/30"
+                      placeholder="e.g., Electric Bill"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-purple-300 text-sm mb-1 block">Projected Amount</label>
+                      <input
+                        type="number"
+                        value={newBill.projected}
+                        onChange={(e) => setNewBill({...newBill, projected: e.target.value})}
+                        className="w-full bg-slate-800/50 text-white px-4 py-3 rounded-lg border border-purple-500/30"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-purple-300 text-sm mb-1 block">Actual Amount</label>
+                      <input
+                        type="number"
+                        value={newBill.actual}
+                        onChange={(e) => setNewBill({...newBill, actual: e.target.value})}
+                        className="w-full bg-slate-800/50 text-white px-4 py-3 rounded-lg border border-purple-500/30"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-purple-300 text-sm mb-1 block">Payment Date</label>
+                    <input
+                      type="text"
+                      value={newBill.date}
+                      onChange={(e) => setNewBill({...newBill, date: e.target.value})}
+                      className="w-full bg-slate-800/50 text-white px-4 py-3 rounded-lg border border-purple-500/30"
+                      placeholder="e.g., 1st of each month"
+                    />
+                  </div>
+                  <div className="flex gap-3">
+                    <button
+                      onClick={addBill}
+                      className="flex-1 bg-green-600 hover:bg-green-700 text-white py-3 rounded-lg font-semibold transition-colors"
+                    >
+                      Add Bill
+                    </button>
+                    <button
+                      onClick={() => {
+                        setIsAddingBill(false);
+                        setNewBill({ category: '', name: '', projected: 0, actual: 0, date: '' });
+                      }}
+                      className="flex-1 bg-slate-700 hover:bg-slate-600 text-white py-3 rounded-lg font-semibold transition-colors"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<MonthlyBillsTracker />);
+  </script>
+</body>
+</html>
