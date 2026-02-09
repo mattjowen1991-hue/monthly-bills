@@ -53,3 +53,12 @@ echo "✅ Deployment complete!"
 echo "🌍 Your app should be live at: https://mattjowen1991-hue.github.io/monthly-bills/"
 echo ""
 echo "💡 Tip: It may take 1-2 minutes for GitHub Pages to update"
+
+# Clean up downloaded zip files from Downloads
+echo ""
+echo "🧹 Cleaning up Downloads folder..."
+rm -f ~/Downloads/monthly-bills-premium*.zip 2>/dev/null
+rm -rf ~/Downloads/monthly-bills-premium 2>/dev/null
+rm -rf ~/Downloads/monthly-bills-premium\ * 2>/dev/null
+echo "✨ Downloads folder cleaned!"
+
